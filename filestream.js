@@ -34,7 +34,7 @@ function FileStream( files, type ){
 
   } else if( files instanceof File ){
 
-    this.read( File );
+    this.read( files );
 
   }
 
