@@ -1,5 +1,7 @@
+var filestream = new FileStream();
+
 module("Core");
 
 test("Basic Test", function() {
-  ok(true, "Fake test should pass");
+  ok(filestream);
 });

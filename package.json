@@ -19,7 +19,7 @@
     "node": "*"
   },
   "scripts": {
-    "test": "grunt test"
+    "test": "grunt qunit"
   },
   "dependencies": {},
   "devDependencies": {
