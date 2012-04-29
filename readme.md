@@ -1,7 +1,7 @@
 # dominode FileReader
 
 As suggested by Max Ogden's
-[dominode](https://github.com/maxogden/dominode/), a streaming
+[dominode](https://github.com/maxogden/dominode/), this is a streaming
 implementation of the HTML5 [FileReader
 API](http://www.w3.org/TR/FileAPI/#FileReader-interface). See the
 dominode readme for more details about why this is cool. If you're still
