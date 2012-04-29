@@ -8,11 +8,10 @@ module.exports = function(grunt) {
       banner: '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
         '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
         '<%= pkg.homepage ? "* " + pkg.homepage + "\n" : "" %>' +
-        '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
-        ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */'
+        '*/'
     },
     lint: {
-      files: ['grunt.js', 'filestream.js', 'test/**/*.js']
+      files: ['grunt.js', 'filestream.js']
     },
     qunit: {
       files: ['test/**/*.html']
@@ -48,7 +47,8 @@ module.exports = function(grunt) {
       globals: {
         exports: true,
         File: true,
-        FileList: true
+        FileList: true,
+        Blob: true
       }
     },
     uglify: {}
@@ -68,6 +68,6 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  grunt.registerTask('default', 'lint qunit concatWrap min');
+  grunt.registerTask('default', 'lint concatWrap min');
 
 };

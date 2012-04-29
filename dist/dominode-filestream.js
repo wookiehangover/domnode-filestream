@@ -968,6 +968,10 @@ var util = require('util');
 
 function FileStream( files, type ){
 
+  if( !(this instanceof FileStream) ){
+    throw new Error("FileStream is a constructor. Try using `new`");
+  }
+
   stream.Stream.call( this );
   this.readable  = true;
   this.type = type;
@@ -975,7 +979,6 @@ function FileStream( files, type ){
     binary:  'readAsBinaryString',
 
     buffer:  'readAsArrayBuffer',
-    blob:    'readAsArrayBuffer',
 
     url:     'readAsDataURL',
     dataUrl: 'readAsDataURL',
@@ -993,7 +996,7 @@ function FileStream( files, type ){
     }
 
   // Or just pass a File
-  } else if( files instanceof File ){
+  } else if( files ){
     this.read( files );
   }
 
@@ -1012,7 +1015,7 @@ FileStream.prototype.read = function( file ){
   if( encoding === undefined )
     err = '`'+ type +'` is not a valid encoding.';
 
-  if( !( file instanceof File ) )
+  if( ! (file instanceof File || file instanceof Blob) )
     err = 'You must provide a valid File object';
 
   if( err )
@@ -1020,18 +1023,23 @@ FileStream.prototype.read = function( file ){
 
   var _this = this;
   var reader = new FileReader();
+
   var handler = this.handle.bind(this);
+  var errorHandler = this.handleError.bind(this);
 
-  reader.onprogress = handler;
-  reader.onload     = handler;
-  // TODO all the other FileReader events
+  reader.onprogress  = handler;
+  reader.onload      = handler;
+  reader.onloadstart = handler;
+  reader.onloadend   = handler;
 
-  reader.onerror = function( data ){
-    _this.emit('error', data);
-  };
+  reader.onerror = errorHandler;
+  reader.onabort = errorHandler;
 
-  reader[ encoding ]( file );
+  return reader[ encoding ]( file );
+};
 
+FileStream.prototype.handleError = function( data ){
+  this.emit('error', data);
 };
 
 FileStream.prototype.handle = function( data ){
