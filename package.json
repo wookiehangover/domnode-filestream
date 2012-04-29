@@ -1,13 +1,30 @@
 {
-  "author": "",
   "name": "dominode-filestream",
-  "version": "0.0.0",
-  "dependencies": {},
-  "devDependencies": {
-    "browserify": "*"
+  "description": "streaming HTML5 FileReaders",
+  "version": "0.0.1",
+  "homepage": "https://github.com/sam/dominode-filestream",
+  "author": {
+    "name": "Sam Breed",
+    "email": "sam@quickleft.com"
   },
-  "optionalDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/wookiehangover/dominode-filestream.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wookiehangover/dominode-filestream/issues"
+  },
+  "main": "filestream.js",
   "engines": {
     "node": "*"
-  }
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.3.9",
+    "browserify": "*"
+  },
+  "keywords": []
 }
