@@ -28,6 +28,11 @@ var ExampleWriteStream = (function(){
 
   util.inherits(ExampleWriteStream, stream.Stream);
 
+  ExampleWriteStream.prototype.end = function( data ){
+    console.log(data);
+  };
+
+
   return ExampleWriteStream;
 })();
 
@@ -45,9 +50,11 @@ test("FileStreams are totally a thing", function() {
   ok( new FileStream( this.blob ) );
 });
 
-test("and they can process blobs", 2, function(){
+test("and they can process blobs", 5, function(){
 
   stop();
+
+  var count = 0;
 
   var fs = new FileStream( this.blob );
 
@@ -59,6 +66,12 @@ test("and they can process blobs", 2, function(){
     start();
   });
 
+  fs.on('end', function( data ){
+    count += 1;
+    ok( data instanceof ProgressEvent );
+    equal( data.loaded, data.total );
+    equal( count, 1, "end should only fire once" );
+  });
 
 });
 
@@ -106,3 +119,20 @@ test("constructor arguments can be empty, and files can be passed to #read", 2, 
   fs.read( this.blob );
 
 });
+
+test("#read", function(){
+
+  var fs = new FileStream( this.blob );
+
+  fs.type = "wuuut";
+  raises(function(){
+    fs.read( this.blob );
+  });
+
+  fs.type = "binary";
+  raises(function(){
+    fs.read( "foobar" );
+  });
+
+});
+

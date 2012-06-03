@@ -60,29 +60,33 @@ FileStream.prototype.read = function( file ){
   if( err )
     throw new Error( err );
 
-  var _this = this;
-  var reader = new FileReader();
+  var reader       = new FileReader();
+  var dataHandler      = this.data.bind(this);
+  var errorHandler = this.error.bind(this);
 
-  var handler = this.handle.bind(this);
-  var errorHandler = this.handleError.bind(this);
-
-  reader.onprogress  = handler;
-  reader.onload      = handler;
-  reader.onloadstart = handler;
-  reader.onloadend   = handler;
+  reader.onprogress  = dataHandler;
+  reader.onload      = dataHandler;
+  reader.onloadstart = dataHandler;
 
   reader.onerror = errorHandler;
   reader.onabort = errorHandler;
 
+  reader.onloadend = this.end.bind(this);
+
   return reader[ encoding ]( file );
 };
 
-FileStream.prototype.handleError = function( data ){
+FileStream.prototype.error = function( data ){
   this.emit('error', data);
 };
 
-FileStream.prototype.handle = function( data ){
+FileStream.prototype.data = function( data ){
   this.emit('data', data);
+};
+
+FileStream.prototype.end = function( data ){
+  this.emit('data', data);
+  this.emit('end', data);
 };
 
 // TODO figure out the best way (in terms of FileList iteration, etc), to emit
