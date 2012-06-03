@@ -1,4 +1,5 @@
-# dominode FileReader
+# dominode-filestream
+A node-style streaming FileReader
 
 As suggested by Max Ogden's
 [dominode](https://github.com/maxogden/dominode/), this is a streaming
@@ -22,10 +23,10 @@ docs](https://developer.mozilla.org/en/DOM/FileReader).
 
 ### TODO
 
-* 'end' events currently aren't ever emitted. This is definitely going
+* <del>'end' events currently aren't ever emitted. This is definitely going
   to be changing in the future, but I'm looking for feedback on the best
   way to do this, and still be able to re-use the same FileStream
-  instance multiple times with `FileStream#read`.
+  instance multiple times with `FileStream#read`.</del>
 * Writable Stream support for the local FileSystem APIs. See more on
   this at [HTML5
   Rocks](http://www.html5rocks.com/en/tutorials/file/filesystem/).
