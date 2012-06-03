@@ -16,7 +16,7 @@ docs](https://developer.mozilla.org/en/DOM/FileReader).
 ### Implementation
 
 * all FileReader ProgressEvents events trigger 'data' events
-* FilReader error and abort events trigger 'error' on the stream
+* FileReader error and abort events trigger 'error' on the stream
 * FileStreams support piping to Writable Stream
 * Support for Blob, File, and FileList objects
 
