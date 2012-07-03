@@ -75,14 +75,6 @@ test("and they can process blobs", 5, function(){
 
 });
 
-test("no contructor abuse", function(){
-
-  raises(function(){
-    FileStream();
-  });
-
-});
-
 test("piping to a writeable stream", 2, function(){
 
   stop();

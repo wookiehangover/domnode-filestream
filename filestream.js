@@ -1,20 +1,16 @@
 (function(){
 
-"use strict";
-
 var stream = require('stream');
 var util = require('util');
 
 function FileStream( files, type ){
 
-  if( !(this instanceof FileStream) ){
-    throw new Error("FileStream is a constructor. Try using `new`");
-  }
+  var self = this;
 
-  stream.Stream.call( this );
-  this.readable  = true;
-  this.type = type;
-  this.encodings = {
+  stream.Stream.call( self );
+  self.readable  = true;
+  self.type = type;
+  self.encodings = {
     binary:  'readAsBinaryString',
 
     buffer:  'readAsArrayBuffer',
@@ -31,12 +27,12 @@ function FileStream( files, type ){
   if( files instanceof FileList ){
 
     for( var i = 0; i < files.length; i++ ){
-      this.read( files[i] );
+      self.read( files[i] );
     }
 
   // Or just pass a File
   } else if( files ){
-    this.read( files );
+    self.read( files );
   }
 
 }
@@ -61,7 +57,7 @@ FileStream.prototype.read = function( file ){
     throw new Error( err );
 
   var reader       = new FileReader();
-  var dataHandler      = this.data.bind(this);
+  var dataHandler  = this.data.bind(this);
   var errorHandler = this.error.bind(this);
 
   reader.onprogress  = dataHandler;
@@ -89,16 +85,47 @@ FileStream.prototype.end = function( data ){
   this.emit('end', data);
 };
 
+
+function FSStream() {
+  var self = this;
+  stream.Stream.call(self);
+  self.writable = true;
+  self.readable = true;
+  this.loaded = 0;
+}
+
+util.inherits(FSStream, stream.Stream);
+
+FSStream.prototype.write = function(data) {
+  if (data.loaded === this.loaded) return true;
+  this.emit('data', data.target.result.slice(this.loaded));
+  this.loaded = data.loaded;
+  return true;
+};
+
+FSStream.prototype.end = function(){
+  this.emit('end');
+  return true;
+};
+
+
 // TODO figure out the best way (in terms of FileList iteration, etc), to emit
 // an `end` event.
 
+function FS( file ){
+  return new FileStream( file );
+}
+
+FS.FileStream = FileStream;
+FS.FSStream = FSStream;
+
 if (typeof exports !== 'undefined') {
   if (typeof module !== 'undefined' && module.exports) {
-    exports = module.exports = FileStream;
+    exports = module.exports = FS;
   }
-  exports = FileStream;
+  exports = FS;
 } else {
-  window.FileStream = FileStream;
+  window.FileStream = FS;
 }
 
 })();
