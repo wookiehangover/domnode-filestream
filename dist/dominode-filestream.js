@@ -5,12 +5,14 @@ var require = function (file, cwd) {
     if (!mod) throw new Error(
         'Failed to resolve module ' + file + ', tried ' + resolved
     );
-    var res = mod._cached ? mod._cached : mod();
+    var cached = require.cache[resolved];
+    var res = cached? cached.exports : mod();
     return res;
 }
 
 require.paths = [];
 require.modules = {};
+require.cache = {};
 require.extensions = [".js",".coffee"];
 
 require._core = {
@@ -42,6 +44,7 @@ require.resolve = (function () {
         throw new Error("Cannot find module '" + x + "'");
         
         function loadAsFileSync (x) {
+            x = path.normalize(x);
             if (require.modules[x]) {
                 return x;
             }
@@ -54,7 +57,7 @@ require.resolve = (function () {
         
         function loadAsDirectorySync (x) {
             x = x.replace(/\/+$/, '');
-            var pkgfile = x + '/package.json';
+            var pkgfile = path.normalize(x + '/package.json');
             if (require.modules[pkgfile]) {
                 var pkg = require.modules[pkgfile]();
                 var b = pkg.browserify;
@@ -119,7 +122,7 @@ require.alias = function (from, to) {
     
     var keys = (Object.keys || function (obj) {
         var res = [];
-        for (var key in obj) res.push(key)
+        for (var key in obj) res.push(key);
         return res;
     })(require.modules);
     
@@ -135,80 +138,48 @@ require.alias = function (from, to) {
     }
 };
 
-require.define = function (filename, fn) {
-    var dirname = require._core[filename]
-        ? ''
-        : require.modules.path().dirname(filename)
-    ;
+(function () {
+    var process = {};
     
-    var require_ = function (file) {
-        return require(file, dirname)
-    };
-    require_.resolve = function (name) {
-        return require.resolve(name, dirname);
-    };
-    require_.modules = require.modules;
-    require_.define = require.define;
-    var module_ = { exports : {} };
-    
-    require.modules[filename] = function () {
-        require.modules[filename]._cached = module_.exports;
-        fn.call(
-            module_.exports,
-            require_,
-            module_,
-            module_.exports,
-            dirname,
-            filename
-        );
-        require.modules[filename]._cached = module_.exports;
-        return module_.exports;
-    };
-};
-
-if (typeof process === 'undefined') process = {};
-
-if (!process.nextTick) process.nextTick = (function () {
-    var queue = [];
-    var canPost = typeof window !== 'undefined'
-        && window.postMessage && window.addEventListener
-    ;
-    
-    if (canPost) {
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'browserify-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-    }
-    
-    return function (fn) {
-        if (canPost) {
-            queue.push(fn);
-            window.postMessage('browserify-tick', '*');
+    require.define = function (filename, fn) {
+        if (require.modules.__browserify_process) {
+            process = require.modules.__browserify_process();
         }
-        else setTimeout(fn, 0);
+        
+        var dirname = require._core[filename]
+            ? ''
+            : require.modules.path().dirname(filename)
+        ;
+        
+        var require_ = function (file) {
+            return require(file, dirname);
+        };
+        require_.resolve = function (name) {
+            return require.resolve(name, dirname);
+        };
+        require_.modules = require.modules;
+        require_.define = require.define;
+        require_.cache = require.cache;
+        var module_ = { exports : {} };
+        
+        require.modules[filename] = function () {
+            require.cache[filename] = module_;
+            fn.call(
+                module_.exports,
+                require_,
+                module_,
+                module_.exports,
+                dirname,
+                filename,
+                process
+            );
+            return module_.exports;
+        };
     };
 })();
 
-if (!process.title) process.title = 'browser';
 
-if (!process.binding) process.binding = function (name) {
-    if (name === 'evals') return require('vm')
-    else throw new Error('No such module')
-};
-
-if (!process.cwd) process.cwd = function () { return '.' };
-
-if (!process.env) process.env = {};
-if (!process.argv) process.argv = [];
-
-require.define("path", function (require, module, exports, __dirname, __filename) {
-function filter (xs, fn) {
+require.define("path",function(require,module,exports,__dirname,__filename,process){function filter (xs, fn) {
     var res = [];
     for (var i = 0; i < xs.length; i++) {
         if (fn(xs[i], i, xs)) res.push(xs[i]);
@@ -342,11 +313,59 @@ exports.basename = function(path, ext) {
 exports.extname = function(path) {
   return splitPathRe.exec(path)[3] || '';
 };
-
 });
 
-require.define("stream", function (require, module, exports, __dirname, __filename) {
-var events = require('events');
+require.define("__browserify_process",function(require,module,exports,__dirname,__filename,process){var process = module.exports = {};
+
+process.nextTick = (function () {
+    var queue = [];
+    var canPost = typeof window !== 'undefined'
+        && window.postMessage && window.addEventListener
+    ;
+    
+    if (canPost) {
+        window.addEventListener('message', function (ev) {
+            if (ev.source === window && ev.data === 'browserify-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+    }
+    
+    return function (fn) {
+        if (canPost) {
+            queue.push(fn);
+            window.postMessage('browserify-tick', '*');
+        }
+        else setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+process.binding = function (name) {
+    if (name === 'evals') return (require)('vm')
+    else throw new Error('No such module. (Possibly not yet loaded)')
+};
+
+(function () {
+    var cwd = '/';
+    var path;
+    process.cwd = function () { return cwd };
+    process.chdir = function (dir) {
+        if (!path) path = require('path');
+        cwd = path.resolve(dir, cwd);
+    };
+})();
+});
+
+require.define("stream",function(require,module,exports,__dirname,__filename,process){var events = require('events');
 var util = require('util');
 
 function Stream() {
@@ -465,11 +484,9 @@ Stream.prototype.pipe = function(dest, options) {
   // Allow for unix-like usage: A.pipe(B).pipe(C)
   return dest;
 };
-
 });
 
-require.define("events", function (require, module, exports, __dirname, __filename) {
-if (!process.EventEmitter) process.EventEmitter = function () {};
+require.define("events",function(require,module,exports,__dirname,__filename,process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
 var isArray = typeof Array.isArray === 'function'
@@ -640,11 +657,9 @@ EventEmitter.prototype.listeners = function(type) {
   }
   return this._events[type];
 };
-
 });
 
-require.define("util", function (require, module, exports, __dirname, __filename) {
-var events = require('events');
+require.define("util",function(require,module,exports,__dirname,__filename,process){var events = require('events');
 
 exports.print = function () {};
 exports.puts = function () {};
@@ -956,26 +971,21 @@ exports.inherits = function(ctor, superCtor) {
     }
   });
 };
-
 });
 
 (function(){
-
-"use strict";
 
 var stream = require('stream');
 var util = require('util');
 
 function FileStream( files, type ){
 
-  if( !(this instanceof FileStream) ){
-    throw new Error("FileStream is a constructor. Try using `new`");
-  }
+  var self = this;
 
-  stream.Stream.call( this );
-  this.readable  = true;
-  this.type = type;
-  this.encodings = {
+  stream.Stream.call( self );
+  self.readable  = true;
+  self.type = type;
+  self.encodings = {
     binary:  'readAsBinaryString',
 
     buffer:  'readAsArrayBuffer',
@@ -992,12 +1002,12 @@ function FileStream( files, type ){
   if( files instanceof FileList ){
 
     for( var i = 0; i < files.length; i++ ){
-      this.read( files[i] );
+      self.read( files[i] );
     }
 
   // Or just pass a File
   } else if( files ){
-    this.read( files );
+    self.read( files );
   }
 
 }
@@ -1022,7 +1032,7 @@ FileStream.prototype.read = function( file ){
     throw new Error( err );
 
   var reader       = new FileReader();
-  var dataHandler      = this.data.bind(this);
+  var dataHandler  = this.data.bind(this);
   var errorHandler = this.error.bind(this);
 
   reader.onprogress  = dataHandler;
@@ -1050,16 +1060,47 @@ FileStream.prototype.end = function( data ){
   this.emit('end', data);
 };
 
+
+function FSStream() {
+  var self = this;
+  stream.Stream.call(self);
+  self.writable = true;
+  self.readable = true;
+  this.loaded = 0;
+}
+
+util.inherits(FSStream, stream.Stream);
+
+FSStream.prototype.write = function(data) {
+  if (data.loaded === this.loaded) return true;
+  this.emit('data', data.target.result.slice(this.loaded));
+  this.loaded = data.loaded;
+  return true;
+};
+
+FSStream.prototype.end = function(){
+  this.emit('end');
+  return true;
+};
+
+
 // TODO figure out the best way (in terms of FileList iteration, etc), to emit
 // an `end` event.
 
+function FS( file ){
+  return new FileStream( file );
+}
+
+FS.FileStream = FileStream;
+FS.FSStream = FSStream;
+
 if (typeof exports !== 'undefined') {
   if (typeof module !== 'undefined' && module.exports) {
-    exports = module.exports = FileStream;
+    exports = module.exports = FS;
   }
-  exports = FileStream;
+  exports = FS;
 } else {
-  window.FileStream = FileStream;
+  window.FileStream = FS;
 }
 
 })();
