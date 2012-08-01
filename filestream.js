@@ -112,8 +112,8 @@ FSStream.prototype.end = function(){
 // TODO figure out the best way (in terms of FileList iteration, etc), to emit
 // an `end` event.
 
-function FS( file ){
-  return new FileStream( file );
+function FS( files, type ){
+  return new FileStream( files, type );
 }
 
 FS.FileStream = FileStream;
